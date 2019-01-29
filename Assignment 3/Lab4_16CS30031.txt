@@ -1,0 +1,136 @@
+create table Learner(RegNo int,  Lname varchar(20),  Profession varchar(10),  Age int , HighestQualification varchar(5),SubjectArea  varchar(10), PRIMARY KEY(RegNo));
+create table Faculty(
+	ProfId int,Pname varchar(20), 
+	SubjectArea varchar(10), Department varchar(5), Institute varchar(10),PRIMARY KEY(ProfId));
+create table Course(
+	CourseId int, Cname varchar(10), 
+	DurationType varchar(10), Slot varchar(2), OfferedBy int,
+	PRIMARY KEY(CourseId),FOREIGN KEY fk_std(OfferedBy) REFERENCES Faculty(ProfId));
+create table Prerequisite(
+	CourseId int, PreId int,FOREIGN KEY fk_std1(CourseId) REFERENCES Course (CourseId),FOREIGN KEY fk_std2(PreId) REFERENCES Course (CourseId),PRIMARY KEY(CourseId, PreId)
+);
+create table Enrol(
+	RegNo int, CourseId int, Score int,PRIMARY KEY(RegNo,CourseId),FOREIGN KEY fk_std3(RegNo) REFERENCES Learner (RegNo),FOREIGN KEY fk_std4(CourseId) REFERENCES Course(CourseId)
+);
+
+insert into Learner values(1, 'stein', 'faculty', 57, 'PhD', 'CS');
+insert into Learner values(2, 'steel', 'faculty', 30, 'PhD', 'CS');
+insert into Learner values(3, 'ash', 'student', 20, 'BTech', 'CS');
+insert into Learner values(4, 'ashley', 'student', 24, 'MTech', 'EE');
+insert into Learner values(5, 'sid', 'student', 26, 'MTech', 'ME');
+insert into Learner values(6, 'ganesh', 'executive', 39, 'BTech', 'ME');
+insert into Learner values(7, 'raj', 'executive', 48, 'BTech', 'CS');
+insert into Learner values(8, 'guru', 'executive', 33, 'BTech', 'EE');
+insert into Learner values(9, 'bron', 'faculty', 47, 'PhD', 'EE');
+
+insert into Faculty values(1, 'albert', 'EE', 'ECE', 'IITKGP');
+insert into Faculty values(2, 'clara', 'CS', 'CSE', 'IITDEL');
+insert into Faculty values(3, 'stein', 'CS', 'CSE', 'IITKGP');
+insert into Faculty values(4, 'steel', 'CS', 'CSE', 'IITDEL');
+insert into Faculty values(5, 'bron', 'EE', 'ECE', 'IITKGP');
+
+insert into Course values(1, 'Elecricity', 'long', 'A1', 1);
+insert into Course values(2, 'Quantum', 'long', 'A2', 1);
+insert into Course values(3, 'PDS', 'short', 'C0', 3);
+insert into Course values(4, 'DS', 'short', 'C1', 4);
+insert into Course values(5, 'ALGO', 'medium', 'C2', 2);
+insert into Course values(6, 'Electronic', 'medium', 'A3', 1);
+
+insert into Prerequisite values(6, 1);
+insert into Prerequisite values(2, 1);
+insert into Prerequisite values(2, 6);
+insert into Prerequisite values(4, 3);
+insert into Prerequisite values(5, 3);
+insert into Prerequisite values(5, 4);
+
+insert into Enrol values(1, 2, 87);
+insert into Enrol values(2, 2, 91);
+insert into Enrol values(3, 1, 77);
+insert into Enrol values(3, 3, 97);
+insert into Enrol values(3, 4, 87);
+insert into Enrol values(3, 5, 70);
+insert into Enrol values(4, 1, 78);
+insert into Enrol values(4, 6, 86);
+insert into Enrol values(4, 2, 55);
+insert into Enrol values(9, 2, 94);
+
+insert into Enrol values(5, 1, 78);
+insert into Enrol values(5, 6, 86);
+insert into Enrol values(5, 2, 55);
+insert into Enrol values(6, 1, 78);
+insert into Enrol values(6, 6, 86);
+insert into Enrol values(6, 2, 55);
+insert into Enrol values(7, 3, 97);
+insert into Enrol values(7, 4, 87);
+insert into Enrol values(7, 5, 70);
+insert into Enrol values(8, 3, 97);
+insert into Enrol values(8, 4, 87);
+insert into Enrol values(8, 5, 70);
+
+
+
+
+select Enrol.RegNo, Lname, Enrol.CourseId, Cname
+	from Enrol, Learner, Course
+	where Enrol.RegNo = Learner.RegNo AND Enrol.CourseId = Course.CourseId AND
+	Enrol.CourseId IN (select CourseId from Prerequisite group by CourseId having count(*) > 1);
+
+with L as (select E.RegNo, Lname, L.SubjectArea, L.HighestQualification, E.CourseId from Enrol as E, Learner as L
+	where E.RegNo = L.RegNo AND L.HighestQualification = 'PhD' AND L.Profession = 'faculty')
+select F.ProfId, F.Pname, F.SubjectArea, RegNo, Lname, L.SubjectArea, L.HighestQualification from L, Faculty as F, Course as C
+where C.CourseId = L.CourseId AND C.OfferedBy = F.ProfId AND F.SubjectArea <> L.SubjectArea;
+
+
+-----> (3) select Slot, count(*) as Number
+	from Course as C, Enrol as E
+	where C.CourseId = E.CourseId
+	group by E.CourseId
+	order by Number desc;
+
+(4) 
+select L1.Department, P.count(*), L.count(*)
+from (select F.Department, count(*)
+from Enrol as E, Course as C, Faculty as F
+where E.CourseId = C.CourseId and F.ProfId = C.OfferedBy
+group by F.Department) as L, (select F.Department, count(*) from Faculty as F group by Department) as P
+where L1.Department = P1.Department;
+
+(5)select Profession, C.Cname, avg(Score)
+	from Enrol as E, Learner as L, Course as C, Faculty as F
+	where E.RegNo = L.RegNo AND E.CourseId = C.CourseId AND F.ProfId = C.OfferedBy AND F.Institute = 'IITKGP'
+	group by Profession, C.Cname;
+
+(6)select E.RegNo, L.Lname
+	from Enrol as E, Learner as L
+	where E.RegNo = L.RegNo
+	group by E.RegNo
+	having count(*) < 3; 
+
+(7)	
+	select E.CourseId, C.Cname, (select X.Score from Enrol as X where X.CourseId = E.CourseId order by X.Score asc limit 1,1)/min(E.Score) as Ratio
+	from Course as C, Enrol as E
+	where C.CourseId = E.CourseId
+	group by E.CourseId;
+
+(8) 
+
+
+
+(9) with Q as (select L.SubjectArea ,E.CourseId, C.Cname, E.RegNo, L.Lname, E.Score
+	from Course as C, Enrol as E, Learner as L
+	where C.CourseId = E.CourseId AND E.RegNo = L.RegNo )
+	select * from Q
+	where (Q.SubjectArea, Q.CourseId, Q.Score) IN
+	(select L.SubjectArea ,E.CourseId, min(E.Score)
+	from Course as C, Enrol as E, Learner as L
+	where C.CourseId = E.CourseId AND E.RegNo = L.RegNo
+	group by L.SubjectArea, E.CourseId)
+	order by SubjectArea, CourseId;
+
+(10) select E.CourseId, C.Cname, avg(E.Score) as AvgScore
+	 from Enrol as E, Learner as L, Course as C
+	 where L.RegNo = E.RegNo AND L.Profession = 'student' AND E.CourseId = C.CourseId
+	 group by E.CourseId
+	 order by AvgScore desc limit 0,1;
+
+
